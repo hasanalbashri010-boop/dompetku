@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikasi Keuangan Pro Pemula</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; }
+        .container { max-width: 500px; margin: 0 auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #333; margin-top: 0; }
+        
+        /* Kartu Saldo */
+        .kartu-saldo { background: linear-gradient(135deg, #2af598 0%, #009efd 100%); color: white; padding: 20px; text-align: center; border-radius: 10px; margin-bottom: 25px; }
+        .kartu-saldo p { margin: 0; font-size: 14px; opacity: 0.9; }
+        .kartu-saldo h1 { margin: 5px 0 0 0; font-size: 28px; }
+        
+        /* Form Input */
+        label { font-weight: bold; font-size: 13px; color: #555; display: block; margin-top: 10px; }
+        input, select, button { width: 100%; padding: 12px; margin-top: 5px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+        input:focus, select:focus { border-color: #009efd; outline: none; }
+        
+        button { background-color: #009efd; color: white; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        button:hover { background-color: #007ecc; }
+        
+        /* Riwayat */
+        h3 { border-bottom: 2px solid #eee; padding-bottom: 8px; color: #444; }
+        ul { list-style: none; padding: 0; max-height: 300px; overflow-y: auto; }
+        li { padding: 12px; border-bottom: 1px solid #edf2f7; display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
+        
+        .info-transaksi { display: flex; flex-direction: column; }
+        .info-transaksi .ket { font-weight: bold; color: #333; }
+        .info-transaksi .sub-info { font-size: 11px; color: #888; margin-top: 2px; }
+        
+        .nominal { font-weight: bold; }
+        .plus { color: #2ecc71; }
+        .minus { color: #e74c3c; }
+        
+        .btn-hapus { background: none; color: #e74c3c; border: none; padding: 0; margin: 0; width: auto; font-size: 12px; cursor: pointer; display: inline; text-decoration: underline; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Dompetku v1.0</h2>
+    
+    <div class="kartu-saldo">
+        <p>Total Saldo Anda</p>
+        <h1 id="total-saldo">Rp 0</h1>
+    </div>
+
+    <label for="nominal-uang">Nominal Uang (Rp)</label>
+    <input type="number" id="nominal-uang" placeholder="Masukkan angka tanpa titik/koma">
+
+    <label for="jenis-transaksi">Jenis Transaksi</label>
+    <select id="jenis-transaksi">
+        <option value="masuk">Pemasukan (+)</option>
+        <option value="keluar">Pengeluaran (-)</option>
+    </select>
+
+    <label for="keterangan">Catatan / Keterangan</label>
+    <input type="text" id="keterangan" placeholder="Contoh: Beli token listrik">
+
+    <button onclick="tambahTransaksi()">Simpan Transaksi</button>
+
+    <h3>Riwayat Aktivitas</h3>
+    <ul id="daftar-riwayat"></ul>
+</div>
+
+<script>
+    // Ambil data dari memori browser HP/Laptop, jika belum ada buat array kosong []
+    let dataTransaksi = JSON.parse(localStorage.getItem('riwayat_keuangan')) || [];
+
+    function tambahTransaksi() {
+        let nominal = parseInt(document.getElementById('nominal-uang').value);
+        let jenis = document.getElementById('jenis-transaksi').value;
+        let keterangan = document.getElementById('keterangan').value;
+
+        // Validasi input
+        if (isNaN(nominal) || nominal <= 0 || keterangan.trim() === "") {
+            alert("Mohon isi semua data dengan benar!");
+            return;
+        }
+
+        let tanggalHariIni = new Date().toLocaleDateString('id-ID', {
+            day: 'numeric', month: 'short', year: 'numeric'
+        });
+
+        // Simpan ke bentuk objek
+        let transaksiBaru = {
+            id: Date.now(),
+            nominal: nominal,
+            jenis: jenis,
+            keterangan: keterangan,
+            tanggal: tanggalHariIni
+        };
+
+        dataTransaksi.unshift(transaksiBaru);
+
+        // Simpan permanen ke LocalStorage browser
+        localStorage.setItem('riwayat_keuangan', JSON.stringify(dataTransaksi));
+
+        perbaruiAplikasi();
+
+        // Kosongkan form kembali
+        document.getElementById('nominal-uang').value = "";
+        document.getElementById('keterangan').value = "";
+    }
+
+    function perbaruiAplikasi() {
+        let daftar = document.getElementById('daftar-riwayat');
+        let totalSaldo = 0;
+        
+        daftar.innerHTML = "";
+
+        dataTransaksi.forEach(function(item) {
+            let li = document.createElement('li');
+            
+            if (item.jenis === "masuk") {
+                totalSaldo += item.nominal;
+                li.innerHTML = `
+                    <div class="info-transaksi">
+                        <span class="ket">${item.keterangan}</span>
+                        <span class="sub-info">${item.tanggal}</span>
+                    </div>
+                    <div>
+                        <span class="nominal plus">+ Rp ${item.nominal.toLocaleString('id-ID')}</span>
+                        <br><button class="btn-hapus" onclick="hapusTransaksi(${item.id})">Hapus</button>
+                    </div>
+                `;
+            } else {
+                totalSaldo -= item.nominal;
+                li.innerHTML = `
+                    <div class="info-transaksi">
+                        <span class="ket">${item.keterangan}</span>
+                        <span class="sub-info">${item.tanggal}</span>
+                    </div>
+                    <div>
+                        <span class="nominal minus">- Rp ${item.nominal.toLocaleString('id-ID')}</span>
+                        <br><button class="btn-hapus" onclick="hapusTransaksi(${item.id})">Hapus</button>
+                    </div>
+                `;
+            }
+            daftar.appendChild(li);
+        });
+
+        document.getElementById('total-saldo').innerText = "Rp " + totalSaldo.toLocaleString('id-ID');
+    }
+
+    function hapusTransaksi(id) {
+        if (confirm("Apakah Anda yakin ingin menghapus catatan ini?")) {
+            dataTransaksi = dataTransaksi.filter(item => item.id !== id);
+            localStorage.setItem('riwayat_keuangan', JSON.stringify(dataTransaksi));
+            perbaruiAplikasi();
+        }
+    }
+
+    // Jalankan otomatis di awal agar data lama langsung muncul saat dibuka
+    perbaruiAplikasi();
+</script>
+
+</body>
+</html>
